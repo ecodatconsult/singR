@@ -4,7 +4,6 @@
 
 
 deployment_info <- function(input_dir){
-
   # switch locale for date formatting
   deployments <- list.files(input_dir, pattern = "_Summary.txt", recursive = TRUE, full.names = TRUE) |>
     normalizePath(winslash = "/") |>
@@ -39,7 +38,7 @@ format_deployment <- function(file, device = "songmeter"){
       dplyr::mutate(datetime = as.POSIXct(paste(date, time), format = "%Y-%b-%d %H:%M:%S")) |>
       dplyr::group_by((paste(lat, "_", lon)), lon, lat) |>
       dplyr::summarise(start_datetime = min(datetime),
-                       end_datetime = max(datetime), ) |>
+                       end_datetime = max(datetime)) |>
       sf::st_as_sf(coords = c("lon", "lat")) |>
       dplyr::select(start_datetime, end_datetime) |>
       dplyr::mutate(deployment_path = file, .before = start_datetime) |>

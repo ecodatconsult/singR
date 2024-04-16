@@ -4,16 +4,13 @@
 \alias{db_upsert}
 \title{Generic function to update information in database}
 \usage{
-db_upsert(upload_data, con, schema, table, idfields, verbose = TRUE)
+db_upsert(upload_data, con, table, idfields, verbose = TRUE)
 }
 \arguments{
 \item{upload_data}{'data.frame', values to be updated, does not need to
 include all columns in the database}
 
 \item{con}{postgresqlconnection}
-
-\item{schema}{'character', the schema name to receive the updated
-values}
 
 \item{table}{'character', the table name to receive the updated
 values}
@@ -22,6 +19,9 @@ values}
 in both the 'upload_data' and the database table, these cannot change}
 
 \item{verbose}{'logical', be verbose about operation, default true}
+
+\item{schema}{'character', the schema name to receive the updated
+values}
 }
 \value{
 logical, whether 'nrow(upload_data)' rows were affected; if anfa

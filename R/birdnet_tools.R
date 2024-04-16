@@ -22,44 +22,106 @@
 #' --fmin and --fmax, Minimum and maximum frequency for bandpass filter. Defaults to 0 and 15000.
 
 
-run_birdnet <- function(birdnet_loc, birdnet_args){
+run_birdnet <- function(mode, birdnet_loc, birdnet_args, settings_id){
   # birdnet_loc <- "/home/alex/BirdNET-Analyzer/"
   # birdnet_args <- list(i = here::here(), o = here::here("temp_birdnet_out.csv"))
 
+  # only keep non-NA args
+  non_empty_args <- birdnet_args |>
+    lapply(function(x) !is.na(x)) |>
+    unlist()
+  birdnet_args <- birdnet_args[non_empty_args]
+
+  # force rtype to table
+  if("rtype" %in% names(birdnet_args)){
+    if(birdnet_args$r != "table"){
+      warning("rtype other than table not accepted, will change argument rtype to table")
+    }
+  }
+
+  if(mode == "analyze") birdnet_args$rtype <- "table"
+
+ # generate console command
   birdnet_cmd_files <- cmd_birdnet(
+    mode = mode,
     birdnet_loc = birdnet_loc,
     birdnet_args = birdnet_args
     )
 
+  # run command
   switch(Sys.info()[['sysname']],
          Linux =  system(paste0("bash ", birdnet_cmd_files$temp_cmd)),
          Windows = shell(birdnet_cmd_files$temp_cmd),
          Darwin = stop("Darwin OS not implemented yet"))
 
-  birdnet_output <- readr::read_delim(birdnet_cmd_files$temp_out) |>
-    janitor::clean_names() |>
-    dplyr::rename(data_file = begin_path) |>
-    dplyr::mutate(data_file = normalizePath(data_file, winslash = "/")) |>
-    dplyr::mutate(deployment_id = create_id_from_path(
-      path = dirname(data_file),
-      level = "deployment_id"),
-      .before = "data_file") |>
-    dplyr::mutate(data_id = create_id_from_path(
-      path = data_file,
-      level = "data_dir"),
-      .before = "data_file")
+  #retrieve results
+  if(mode == "analyze"){
+    birdnet_output <- list.files(birdnet_args$o,
+                                 pattern = "selection.table.txt",
+                                 recursive = TRUE,
+                                 full.names = TRUE) |>
+      as.list() |>
+      lapply(readr::read_delim, col_types = readr::cols()) |>
+      do.call(what = rbind) |>
+      janitor::clean_names() |>
+      dplyr::rename(data_file = begin_path) |>
+      dplyr::mutate(data_file = normalizePath(data_file, winslash = "/")) |>
+      dplyr::mutate(deployment_id = create_id_from_path(
+        path = dirname(data_file),
+        level = "deployment_id"),
+        .before = "data_file") |>
+      dplyr::mutate(data_id = create_id_from_path(
+        path = data_file,
+        level = "data"),
+        .before = "data_file") |>
+      dplyr::mutate(analyze_settings_id = settings_id)
 
+    lapply(birdnet_cmd_files, file.remove)
 
-  lapply(birdnet_cmd_files, file.remove)
+    return(birdnet_output)
+  }
 
-  return(birdnet_output)
+  if(mode == "embeddings"){
+    birdnet_output <- list.files(birdnet_args$o,
+                                 pattern = "birdnet.embeddings.txt",
+                                 recursive = TRUE,
+                                 full.names = TRUE) |>
+      as.list() |>
+      lapply(function(file){
+        readr::read_delim(file,
+                          col_types = readr::cols(),
+                          col_names = FALSE,
+                          delim = ",") |>
+          tidyr::separate(X1,
+                          into = c("start_s", "end_s"),
+                          sep = "\\t") |>
+          dplyr::mutate(data_file = stringr::str_replace(file, "birdnet.embeddings.txt", "wav"),
+                        .before = 1) |>
+          dplyr::mutate(deployment_id = create_id_from_path(
+            path = dirname(data_file),
+            level = "deployment_id"),
+            .before = "data_file") |>
+          dplyr::mutate(data_id = create_id_from_path(
+            path = data_file,
+            level = "data"),
+            .before = "data_file") |>
+          dplyr::mutate(analyze_settings_id = settings_id, .before = 1)
+      }) |>
+      do.call(what = rbind) |>
+      janitor::clean_names()
+
+    lapply(birdnet_cmd_files, file.remove)
+
+    return(birdnet_output)
+  }
+
 }
 
 
-cmd_birdnet <- function(birdnet_loc, birdnet_args){
+cmd_birdnet <- function(mode = "analyze", birdnet_loc, birdnet_args){
   cmd <-  paste0(
     "which python3\n",
-    paste0("python3 ", paste0(birdnet_loc, "/analyze.py ")),
+    paste0("python3 ", paste0(birdnet_loc, "/", mode, ".py ")),
 
     paste0(
       "--",
