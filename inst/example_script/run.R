@@ -169,4 +169,6 @@ for(deployment_id_sel in deployment$deployment_id){
                 ))
   }
 
-
+file.copy(db_location, "/media/alex/A3A0-D191/soundscape/soundscape.gpkg")
+dir.create("/media/alex/A3A0-D191/soundscape/results")
+file.copy("/tmp/Rtmphc8Qmt", "/media/alex/A3A0-D191/soundscape/results")
