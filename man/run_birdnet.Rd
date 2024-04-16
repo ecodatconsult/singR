@@ -2,29 +2,76 @@
 % Please edit documentation in R/birdnet_tools.R
 \name{run_birdnet}
 \alias{run_birdnet}
-\title{run BirdNet from command line}
+\title{Run BirdNET Analyzer with specified mode and arguments}
 \usage{
-run_birdnet(mode, birdnet_loc, birdnet_args)
+run_birdnet(mode, birdnet_loc, birdnet_args, settings_id)
+}
+\arguments{
+\item{mode}{The mode in which BirdNET Analyzer should be run (such as "analyze" or "embeddings").}
+
+\item{birdnet_loc}{The location of the BirdNET Analyzer scripts.}
+
+\item{birdnet_args}{A list of command line arguments to be passed to BirdNET Analyzer.}
+
+\item{settings_id}{An identifier for the settings used for analysis.}
+}
+\value{
+A data frame containing the output from BirdNET Analyzer.
 }
 \description{
-run BirdNet from command line
+This function runs BirdNET Analyzer with the specified mode ("analyze" or "embeddings")
+and command line arguments.
 }
 \details{
-available command line arguments (also see https://github.com/kahst/BirdNET-Analyzer)
---i, Path to input file or folder. If this is a file, --o needs to be a file too.
---o, Path to output file or folder. If this is a file, --i needs to be a file too.
---lat, Recording location latitude. Set -1 to ignore.
---lon, Recording location longitude. Set -1 to ignore.
---week, Week of the year when the recording was made. Values in [1, 48] (4 weeks per month). Set -1 for year-round species list.
---slist, Path to species list file or folder. If folder is provided, species list needs to be named "species_list.txt". If lat and lon are provided, this list will be ignored.
---sensitivity, Detection sensitivity; Higher values result in higher sensitivity. Values in [0.5, 1.5]. Defaults to 1.0.
---min_conf, Minimum confidence threshold. Values in [0.01, 0.99]. Defaults to 0.1.
---overlap, Overlap of prediction segments. Values in [0.0, 2.9]. Defaults to 0.0.
---rtype, Specifies output format. Values in ['table', 'audacity', 'r', 'kaleidoscope', 'csv']. Defaults to 'table' (Raven selection table).
---threads, Number of CPU threads.
---batchsize, Number of samples to process at the same time. Defaults to 1.
---locale, Locale for translated species common names. Values in ['af', 'de', 'it', ...] Defaults to 'en'.
---sf_thresh, Minimum species occurrence frequency threshold for location filter. Values in [0.01, 0.99]. Defaults to 0.03.
---classifier, Path to custom trained classifier. Defaults to None. If set, --lat, --lon and --locale are ignored.
---fmin and --fmax, Minimum and maximum frequency for bandpass filter. Defaults to 0 and 15000.
+Available command line arguments:
+- --i: Path to input file or folder. If this is a file, --o needs to be a file too.
+- --o: Path to output file or folder. If this is a file, --i needs to be a file too.
+- --lat: Recording location latitude. Set -1 to ignore.
+- --lon: Recording location longitude. Set -1 to ignore.
+- --week: Week of the year when the recording was made. Values in [1, 48] (4 weeks per month). Set -1 for year-round species list.
+- --slist: Path to species list file or folder. If folder is provided, species list needs to be named "species_list.txt". If lat and lon are provided, this list will be ignored.
+- --sensitivity: Detection sensitivity; Higher values result in higher sensitivity. Values in [0.5, 1.5]. Defaults to 1.0.
+- --min_conf: Minimum confidence threshold. Values in [0.01, 0.99]. Defaults to 0.1.
+- --overlap: Overlap of prediction segments. Values in [0.0, 2.9]. Defaults to 0.0.
+- --rtype: Specifies output format. Values in ['table', 'audacity', 'r', 'kaleidoscope', 'csv']. Defaults to 'table' (Raven selection table).
+- --threads: Number of CPU threads.
+- --batchsize: Number of samples to process at the same time. Defaults to 1.
+- --locale: Locale for translated species common names. Values in ['af', 'de', 'it', ...] Defaults to 'en'.
+- --sf_thresh: Minimum species occurrence frequency threshold for location filter. Values in [0.01, 0.99]. Defaults to 0.03.
+- --classifier: Path to custom trained classifier. Defaults to None. If set, --lat, --lon and --locale are ignored.
+- --fmin and --fmax: Minimum and maximum frequency for bandpass filter. Defaults to 0 and 15000.
+}
+\examples{
+library(dplyr)
+
+# Set the location of BirdNET Analyzer executable
+birdnet_location <- "/home/user/BirdNET-Analyzer/"
+
+# Set command line arguments
+birdnet_arguments <- list(
+  i = "path/to/input/file",
+  o = "path/to/output/folder",
+  lat = 40.7128,
+  lon = -74.0060,
+  week = 23,
+  slist = "path/to/species/list",
+  sensitivity = 1.0,
+  min_conf = 0.1,
+  overlap = 0.0,
+  rtype = "table",
+  threads = 4,
+  batchsize = 1,
+  locale = "en",
+  sf_thresh = 0.03,
+  classifier = "path/to/custom/classifier",
+  fmin = 0,
+  fmax = 15000
+)
+
+# Run BirdNET Analyzer in "analyze" mode
+birdnet_output <- run_birdnet(mode = "analyze", birdnet_loc = birdnet_location, birdnet_args = birdnet_arguments)
+
+# View the output
+print(birdnet_output)
+
 }

@@ -1,8 +1,13 @@
-#' get deployment info
+#' Extract deployment information from files in a directory
 #'
-#' specific function for songmeter micro txt files which looks for files for each deployment named [RECORDER_NAME]_Summary.txt
-
-
+#' This function reads deployment summary files from a directory, formats the data, and returns deployment information.
+#'
+#' @param input_dir The directory containing deployment summary files.
+#'
+#' @return A data frame containing formatted deployment information.
+#'
+#' @export
+#'
 deployment_info <- function(input_dir){
   # switch locale for date formatting
   deployments <- list.files(input_dir, pattern = "_Summary.txt", recursive = TRUE, full.names = TRUE) |>
@@ -21,6 +26,15 @@ deployment_info <- function(input_dir){
 
 }
 
+
+#' Format deployment data from a file
+#'
+#' This function reads and formats deployment data from a file, specifically designed for Songmeter devices.
+#'
+#' @param file The path to the deployment summary file.
+#' @param device The type of device used for deployment (default is "songmeter").
+#'
+#' @return A data frame containing formatted deployment information.
 
 format_deployment <- function(file, device = "songmeter"){
   if(device == "songmeter"){

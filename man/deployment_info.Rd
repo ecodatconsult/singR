@@ -2,10 +2,16 @@
 % Please edit documentation in R/deployment_info.R
 \name{deployment_info}
 \alias{deployment_info}
-\title{get deployment info}
+\title{Extract deployment information from files in a directory}
 \usage{
 deployment_info(input_dir)
 }
+\arguments{
+\item{input_dir}{The directory containing deployment summary files.}
+}
+\value{
+A data frame containing formatted deployment information.
+}
 \description{
-specific function for songmeter micro txt files which looks for files for each deployment named [RECORDER_NAME]_Summary.txt
+This function reads deployment summary files from a directory, formats the data, and returns deployment information.
 }

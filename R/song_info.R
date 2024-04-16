@@ -1,11 +1,25 @@
-
+#' Extract metadata information from audio files in a directory
 #'
-#' @param song_dir character, Verzeichnis in dem rekursiv Bilder gesucht werden
-#' @param info_out character, Verzeichnis in dem die Tabelle zwischengespeichert wird
+#' This function uses ExifTool to extract metadata information from audio files in a directory
+#' and saves the information in a CSV file.
+#'
+#' @param song_dir The directory containing audio files.
+#' @param info_out The output file path to save the metadata information (default is a temporary CSV file).
+#'
+#' @return A data frame containing metadata information extracted from audio files.
+#'
+#' @examples
+#'
+#' # Provide the path to the directory containing audio files
+#' song_directory <- "path/to/your/audio/files"
+#'
+#' # Extract metadata information
+#' song_info <- song_info(song_directory)
+#'
+#' # View the extracted metadata information
+#' print(song_info)
 #'
 #' @export
-
-
 
 song_info <- function(song_dir = here::here(), info_out = tempfile("out", tmpdir = here::here(), fileext = ".csv")){
  #song_dir <- "~/Documents/Soundscape/"
