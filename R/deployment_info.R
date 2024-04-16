@@ -55,7 +55,7 @@ format_deployment <- function(file, device = "songmeter"){
                        end_datetime = max(datetime)) |>
       sf::st_as_sf(coords = c("lon", "lat")) |>
       dplyr::select(start_datetime, end_datetime) |>
-      dplyr::mutate(deployment_path = file, .before = start_datetime) |>
+      dplyr::mutate(deployment_path = dirname(file), .before = start_datetime) |>
       sf::st_set_crs(4326)
 
     return(formatted_deployment)

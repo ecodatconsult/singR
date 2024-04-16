@@ -51,7 +51,7 @@ db_filter_upload <- function(upload_data, con, table, idfields, verbose = TRUE) 
       apply(., 1, paste, collapse = "_")
 
     upload_data$id_agg <- upload_data |>
-      dplyr::select(!!dplyr::sym(idfields)) |>
+      dplyr::select(dplyr::all_of(idfields)) |>
       apply(1, paste, collapse = "_")
 
     upload_data_filtered <- upload_data |>

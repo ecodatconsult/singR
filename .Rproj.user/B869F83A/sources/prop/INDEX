@@ -13,3 +13,8 @@
 ~%2FDocuments%2FProjekte%2FsingR%2Finst%2Fexample_script%2Frun.R="282DB275"
 ~%2FDocuments%2FProjekte%2FsingR%2Frun_exif380174b34c95.sh="35742EBE"
 ~%2FDocuments%2FProjekte%2FsingR%2Ftest.csv="4FF7266B"
+~%2FDocuments%2FProjekte%2FsingR%2Ftests%2Ftestthat%2Ftest-create_id_from_path.R="DA9A9090"
+~%2FDocuments%2FProjekte%2FsingR%2Ftests%2Ftestthat%2Ftest-db_tools.R="375A7FA4"
+~%2FDocuments%2FProjekte%2FsingR%2Ftests%2Ftestthat%2Ftest-deployment_info.R="3975895C"
+~%2FDocuments%2FProjekte%2FsingR%2Ftests%2Ftestthat%2Ftest-extract_path_info.R="8376C677"
+~%2FDocuments%2FProjekte%2FsingR%2Ftests%2Ftestthat%2Ftest-format_deployment.R="F5B736EC"

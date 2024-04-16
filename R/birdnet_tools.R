@@ -107,7 +107,7 @@ run_birdnet <- function(mode, birdnet_loc, birdnet_args, settings_id){
       dplyr::rename(data_file = begin_path) |>
       dplyr::mutate(data_file = normalizePath(data_file, winslash = "/")) |>
       dplyr::mutate(deployment_id = create_id_from_path(
-        path = dirname(data_file),
+        path = dirname(dirname(data_file)),
         level = "deployment_id"),
         .before = "data_file") |>
       dplyr::mutate(data_id = create_id_from_path(
@@ -138,7 +138,7 @@ run_birdnet <- function(mode, birdnet_loc, birdnet_args, settings_id){
           dplyr::mutate(data_file = stringr::str_replace(file, "birdnet.embeddings.txt", "wav"),
                         .before = 1) |>
           dplyr::mutate(deployment_id = create_id_from_path(
-            path = dirname(data_file),
+            path = dirname(dirname(data_file)),
             level = "deployment_id"),
             .before = "data_file") |>
           dplyr::mutate(data_id = create_id_from_path(
