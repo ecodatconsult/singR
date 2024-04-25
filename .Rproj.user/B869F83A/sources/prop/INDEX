@@ -1,3 +1,4 @@
+%2Ftmp%2Fpid-2657%2F02_generate_spreadsheet_for_segment_classification.R="F1B86538"
 ~%2FDocuments%2FProjekte%2FFotofallenApp%2FDMCrAI%2FR%2Fcreate_md_bat.R="D76264C8"
 ~%2FDocuments%2FProjekte%2FFotofallenApp%2FDMCrAI%2FR%2Fdb_generics.R="6D0223BF"
 ~%2FDocuments%2FProjekte%2FFotofallenApp%2FDMCrAI%2FR%2Fexif_image_info.R="5C7E9974"
@@ -5,6 +6,7 @@
 ~%2FDocuments%2FProjekte%2FsingR%2FR%2Fdb_tools.R="D6E5BB35"
 ~%2FDocuments%2FProjekte%2FsingR%2FR%2Fdeployment_info.R="3D201E4D"
 ~%2FDocuments%2FProjekte%2FsingR%2FR%2Fextract_path_info.R="0D5178C8"
+~%2FDocuments%2FProjekte%2FsingR%2FR%2Fgenerate_xlsx_table.R="EED84B55"
 ~%2FDocuments%2FProjekte%2FsingR%2FR%2Fhello.R="98103232"
 ~%2FDocuments%2FProjekte%2FsingR%2FR%2FrunBirdnet.R="EF87F1D5"
 ~%2FDocuments%2FProjekte%2FsingR%2FR%2Frun_birdnet.R="6C5C3773"

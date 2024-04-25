@@ -24,8 +24,8 @@ create_id_from_path <- function(path, ...){
     extract_path_info(...) |>
     apply(1, function(x){
       x |>
-        paste(collapse = "_") |>
-        digest::digest(algo = "md5")
+        paste(collapse = "/") |>
+        digest::digest(algo = "murmur32")
     }) |>
     unlist()
 }

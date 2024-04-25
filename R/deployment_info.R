@@ -20,7 +20,12 @@ deployment_info <- function(input_dir){
                     create_id_from_path(
                       path = deployment_path,
                       level = "deployment_id"),
-                  .before = "deployment_path")
+                  .before = "deployment_path") |>
+    dplyr::mutate(deployment_name = extract_path_info(path = deployment_path,
+                                                     level = "deployment_id") %>%
+                   apply(., 1, paste0, collapse = "_"),
+                  .before = "deployment_path"
+                 )
 
   return(deployments)
 

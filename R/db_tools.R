@@ -64,3 +64,5 @@ db_filter_upload <- function(upload_data, con, table, idfields, verbose = TRUE) 
       RSQLite::dbAppendTable(conn = con, name = table)
   }
 }
+
+
