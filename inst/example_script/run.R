@@ -9,7 +9,6 @@ sf::st_layers(db_location)
 con <- RSQLite::dbConnect(RSQLite::SQLite(), db_location)
 
 sf::st_layers("/home/alex/Documents/databases/soundscape.gpkg")
-sf::st_read("/home/alex/Documents/databases/soundscape.gpkg", layer = "birdnet_analyze_results")
 # input_dir <- system.file(package = "singR")
 
 input_dir <- "/home/alex/Documents/Soundscape/KW2100"
@@ -200,6 +199,172 @@ for(deployment_id_sel in deployment$deployment_id){
 
   }
   }
+
+
+# Run acoustic indices analyses
+
+data_dirs <- dplyr::tbl(con, "exif_metadata") |>
+  dplyr::select("data_id", "data_file") |>
+  dplyr::collect() |>
+  dplyr::mutate(data_dir = dirname(data_file)) |>
+  dplyr::mutate(deployment_id = create_id_from_path(dirname(data_dir), level = "deployment_id")) |>
+  dplyr::filter(!duplicated(deployment_id))
+
+acindx_dir <- paste0(dirname(input_dir), "/", basename(input_dir), "_", "acoustic_indices")
+dir.create(acindx_dir)
+
+for(acoustic_index in c("ndsi", "acoustic_complexity", "acoustic_diversity", "acoustic_evenness", "bioacustic_index", "H")){
+  dir.create(paste0(acindx_dir, "/", acoustic_index))
+  for(data_dir in seq(nrow(data_dirs))){
+    resultfile <- paste0(acindx_dir, "/", acoustic_index, "/", data_dirs$deployment_id[data_dir], ".csv")
+    soundecology::acoustic_complexity
+    soundecology::multiple_sounds(directory = data_dirs$data_dir[data_dir],
+                                  resultfile = resultfile,
+                                  soundindex = acoustic_index,
+                                  no_cores = 1
+    )
+  }
+}
+
+acoustic_indices <- get_files_info(con) |>
+  apply(1, proc_acoustic)
+
+# data_dirs <- dplyr::tbl(con, "exif_metadata") |>
+#   dplyr::select("data_id", "data_file") |>
+#   dplyr::collect() |>
+#   dplyr::mutate(deployment_id = create_id_from_path(dirname(dirname(data_file)), level = "deployment_id"))
+#
+# n_cores <- parallel::detectCores() - 1
+# parallel::parApply()
+#
+# x <- data_dirs[1,] |>
+#   as.vector()
+#
+#
+# proc_acoustic <- function(x){
+#   gc()
+#   env_objs <- ls()
+#   env_objs <- env_objs[!stringr::str_detect(env_objs, "x$")]
+#   rm(list = env_objs)
+#   try({
+#
+#     x <- as.data.frame(x) |>
+#       t()
+#     wav <- tuneR::readWave(x[1,2])
+#
+#     aci_min_freq <- 0
+#     aci_max_freq <- 48000
+#     aci_j = 5
+#     aci_fft_w = 512
+#
+#     aci <- soundecology::acoustic_complexity(wav, min_freq = aci_min_freq, max_freq = aci_max_freq, j = aci_j, fft_w = aci_fft_w)[(1:4)] |>
+#       as.data.frame() |>
+#       cbind(mget(ls(pattern = "aci_"))) |>
+#       janitor::clean_names() %>%
+#       cbind(x, .)
+#
+#     adi_max_freq <- 10000
+#     adi_db_threshold <- -50
+#     adi_freq_step = 1000
+#     adi_shannon = TRUE
+#
+#     adi <- soundecology::acoustic_diversity(wav, max_freq = adi_max_freq, db_threshold = adi_db_threshold, freq_step = adi_freq_step, shannon = adi_shannon)[1:2] |>
+#       as.data.frame() |>
+#       cbind(mget(ls(pattern = "adi_"))) |>
+#       janitor::clean_names() %>%
+#       cbind(x, .)
+#
+#
+#     aei_max_freq <- 10000
+#     aei_db_threshold <- -50
+#     aei_freq_step = 1000
+#     aei <- soundecology::acoustic_evenness(wav) |>
+#       as.data.frame() |>
+#       cbind(mget(ls(pattern = "aei_"))) |>
+#       janitor::clean_names() %>%
+#       cbind(x, .)
+#
+#
+#     bai_min_freq <- 2000
+#     bai_max_freq <- 8000
+#     bai_fft_w <- 512
+#     bai <- soundecology::bioacoustic_index(wav) |>
+#       as.data.frame() |>
+#       cbind(mget(ls(pattern = "bai_"))) |>
+#       janitor::clean_names() %>%
+#       cbind(x, .)
+#
+#
+#     nsdi_fft_w <- 512
+#     nsdi_anthro_min = 1000
+#     nsdi_anthro_max = 2000
+#     nsdi_bio_min = 2000
+#     nsdi_bio_max = 10000
+#     nsdi <- soundecology::ndsi(wav,
+#                                fft_w = nsdi_fft_w,
+#                                anthro_min = nsdi_anthro_min,
+#                                anthro_max = nsdi_anthro_max,
+#                                bio_min = nsdi_bio_min,
+#                                bio_max = nsdi_bio_max) |>
+#       as.data.frame() |>
+#       cbind(mget(ls(pattern = "nsdi_"))) |>
+#       janitor::clean_names() %>%
+#       cbind(x, .)
+#
+#     ent_wl <- 512
+#     ent_envt <- "hil"
+#     ent_msmooth = NA
+#     ent_ksmooth = NA
+#     ent <- seewave::H(wav, wl = ent_wl, envt = ent_envt) |>
+#       as.data.frame() |>
+#       setNames("entropy") |>
+#       cbind(mget(ls(pattern = "ent_"))) |>
+#       janitor::clean_names() %>%
+#       cbind(x, .)
+#
+#
+#     return(
+#       list(aci = aci, adi = adi, aei = aei, bai = bai, ent = ent, nsdi = nsdi)
+#     )
+#   })
+#
+#
+# }
+# #
+# cl <- snow::makeSOCKcluster(12)
+# parallel::clusterEvalQ(cl, library(magrittr))
+# startPar <- Sys.time()
+# acindxs <- parallel::parApply(cl, data_dirs, 1, proc_acoustic)
+# (endPar <- Sys.time() - startPar)
+# parallel::stopCluster(cl)
+
+startNoPar <- Sys.time()
+acindxs <- apply(data_dirs[1:10,], 1, proc_acoustic)
+lapply(acindxs, function(x) x$aci) |>
+  do.call(what = rbind)
+(endNoPar <- startNoPar - Sys.time())
+
+#
+# acindx_dir <- paste0(dirname(input_dir), "/", basename(input_dir), "_", "acoustic_indices")
+# dir.create(acindx_dir)
+#
+# for(acoustic_index in c("ndsi", "acoustic_complexity", "acoustic_diversity", "acoustic_evenness", "bioacustic_index", "H")){
+#   dir.create(paste0(acindx_dir, "/", acoustic_index))
+#   for(data_dir in seq(nrow(data_dirs))){
+#     resultfile <- paste0(acindx_dir, "/", acoustic_index, "/", data_dirs$deployment_id[data_dir], ".csv")
+#     soundecology::acoustic_complexity
+#     soundecology::multiple_sounds(directory = data_dirs$data_dir[data_dir],
+#                                   resultfile = resultfile,
+#                                   soundindex = acoustic_index,
+#                                   no_cores = 1
+#     )
+#   }
+# }
+#
+#
+#
+#
+# soundecology::multiple_sounds()
 
 # file.copy(db_location, "/media/alex/A3A0-D191/soundscape/soundscape.gpkg")
 # dir.create("/media/alex/A3A0-D191/soundscape/results")
