@@ -58,6 +58,7 @@ format_deployment <- function(file, device = "songmeter"){
       dplyr::group_by((paste(lat, "_", lon)), lon, lat) |>
       dplyr::summarise(start_datetime = min(datetime),
                        end_datetime = max(datetime)) |>
+      dplyr::filter(!is.na(start_datetime)) |> #assume that if start_datetime is na, the row is invalid
       sf::st_as_sf(coords = c("lon", "lat")) |>
       dplyr::select(start_datetime, end_datetime) |>
       dplyr::mutate(deployment_path = dirname(file), .before = start_datetime) |>

@@ -2,9 +2,7 @@
 #' @param files_info vector created from exif data
 #' @export
 proc_acoustic <- function(files_info){
-    files_info <- as.data.frame(files_info) |>
-      t()
-    wav <- tuneR::readWave(files_info[1,2])
+    wav <- tuneR::readWave(files_info$data_file)
 
     aci_min_freq <- 0
     aci_max_freq <- 48000

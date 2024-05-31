@@ -39,18 +39,36 @@ settings_dir -> dir_path
 
   column_xl_num <- which(names(wavs_df_2) == "Dateipfad_rel")
   column_xl <- LETTERS[which(names(wavs_df_2) == "Dateipfad_rel")]
+  formula_workingdirectory <- 'SUBSTITUTE(CELL("filename"), RIGHT(CELL("filename"), LEN(CELL("filename")) - FIND("Eingabeformular_3sekunden", CELL("filename")) + 1), ""),'
+
+  formula_workingdirectory <- paste0('SUBSTITUTE(', formula_workingdirectory, '"\'", ""),')
 
   segements_worksheet_df <- wavs_df_2 |>
     dplyr::group_split(deployment_id) |>
     lapply(function(x){
       x <- x |>
-        dplyr::mutate(Dateipfad = paste0('HYPERLINK(CONCATENATE(einstellungen!B$2,',
-                                         #paste0("ADDRESS(", seq(dplyr::n())+1, ",", column_xl_num,")),"),
-                                         column_xl, seq(dplyr::n())+1,'),',
-                                         #paste0(column_xl,"$",1) ,
-                                         '">abspielen<"',
-                                         #paste0("ADDRESS(1,", column_xl_num,")"),
-                                         ')'))
+        dplyr::mutate(Dateipfad = paste0(
+          'HYPERLINK(CONCATENATE(',
+            formula_workingdirectory,
+          column_xl, seq(dplyr::n())+1,
+          '),',
+          '">abspielen<"'
+          ))
+#
+#       x <- x |>
+#         dplyr::mutate(Dateipfad = paste0(
+#           'CONCATENATE(',
+#           formula_workingdirectory,
+#           column_xl, seq(dplyr::n())+1,
+#           ")"
+#           #",\"'\")"
+#         ))
+#                          # paste0('HYPERLINK(CONCATENATE(einstellungen!B$2,',
+                         #                  column_xl, seq(dplyr::n())+1,'),',
+                        #                  #paste0(column_xl,"$",1) ,
+                        #                  '">abspielen<"',
+                        #                  #paste0("ADDRESS(1,", column_xl_num,")"),
+                        #                  ')'))
       class(x$Dateipfad) <- c(class(x$Dateipfad), "formula")
 
       return(x)
@@ -61,22 +79,20 @@ settings_dir -> dir_path
   lname <- names(segements_worksheet_df)[1]
   wb <- openxlsx::createWorkbook(creator = "Alexander Wagner, alexander.milles@wald-rlp.de")
 
-  openxlsx::addWorksheet(wb, "einstellungen")
-
-  data.frame(Einstellung = "Pfad zum Hauptordner", Wert = dir_path, Erklaerung = "Hier muss der Pfad zu dem Ordner eingetragen werden, in dem die Datei entpackt wurde. Zum Beispiel 'C:/Users/amilles/Downloads/'") |>
-    openxlsx::writeData(wb = wb, sheet = "einstellungen")
-
   openxlsx::addWorksheet(wb, "erlaubte_Werte")
 
   # define allowed values (append NA to facilitate cbind of dataframe)
   erlaubte_Werte <- list(
-    ManuellErgebnis = c("Biotisch - anderer Vogel", "Biotisch - unbekannt","Biotisch - kein Vogel", "Abiotisch - Wind", "Abiotisch - Regen", sort(unique(wavs_df_2$BirdnetErgebnis))),
-    ManuellVerhalten = c("Flug", "Gesang", "Warnung", "Jungvogel"),
+    ManuellErgebnis = c("Biotisch - anderer Vogel", "Biotisch - unbekannter Vogel", "Biotisch - unbekannt","Biotisch - kein Vogel", "Abiotisch - Wind", "Abiotisch - Regen", sort(unique(wavs_df_2$BirdnetErgebnis))),
+    ManuellVerhalten = c("unbekannter Ruf", "Flugruf", "Gesang", "Warnruf", "Jungvogel", "Regenruf", "Kontaktruf"),
     ManuellSicher = c("sehr sicher", "sicher", "unsicher", "sehr unsicher"),
     Soundqualitaet = c("hervorragend", "gut", "durchschnittlich", "schlecht")
   )
 
-  req_length <- lapply(erlaubte_Werte, length) |> unlist() |> max()
+  # append empty values so it becomes a dataframe with equal rows per column and write to worksheet
+  req_length <- lapply(erlaubte_Werte, length) |>
+    unlist() |>
+    max()
 
   lapply(erlaubte_Werte, function(x, req_length){
     c(x, rep("", req_length - length(x)))
@@ -84,6 +100,7 @@ settings_dir -> dir_path
     data.frame() |>
     openxlsx::writeDataTable(wb = wb, sheet = "erlaubte_Werte")
 
+  # create worksheet with validations rule
   wb |>
     openxlsx::addWorksheet(lname)
 
