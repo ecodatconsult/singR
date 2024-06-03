@@ -88,6 +88,9 @@ run_birdnet <- function(mode, birdnet_loc, birdnet_args, settings_id){
     birdnet_args = birdnet_args
     )
 
+  # remove cmd file on exit
+  on.exit(file.remove(birdnet_cmd_files$temp_cmd))
+
   # run command
   switch(Sys.info()[['sysname']],
          Linux =  system(paste0("bash ", birdnet_cmd_files$temp_cmd)),
@@ -167,8 +170,6 @@ run_birdnet <- function(mode, birdnet_loc, birdnet_args, settings_id){
 #' @param birdnet_args A list of command line arguments to be passed to BirdNET Analyzer.
 #'
 #' @return A list containing the generated command file location and the output file path.
-#'
-#' @importFrom base tempfile
 #'
 #' @examples
 #'

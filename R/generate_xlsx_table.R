@@ -1,5 +1,5 @@
 create_birdnet_workbook <- function(dir_path){
-settings_dir -> dir_path
+#settings_dir -> dir_path
   # Lese audiodateien ein
   wavs <- list.files(dir_path, pattern = ".wav", recursive = TRUE, include.dirs = TRUE, full.names = TRUE)
 
@@ -32,6 +32,7 @@ settings_dir -> dir_path
                   Soundqualitaet = NA,
                   BearbeitetDurch = NA,
                   Kommentar = NA) |>
+    #dplyr::mutate(Dateipfad_excel_win = paste0(dir_path, wavs_short)) |>
     dplyr::mutate(Dateipfad = paste0(dir_path, wavs_short)) |>
     dplyr::mutate(Dateipfad_rel = wavs_short)
 
@@ -39,38 +40,23 @@ settings_dir -> dir_path
 
   column_xl_num <- which(names(wavs_df_2) == "Dateipfad_rel")
   column_xl <- LETTERS[which(names(wavs_df_2) == "Dateipfad_rel")]
-  formula_workingdirectory <- 'SUBSTITUTE(CELL("filename"), RIGHT(CELL("filename"), LEN(CELL("filename")) - FIND("Eingabeformular_3sekunden", CELL("filename")) + 1), ""),'
-
-  formula_workingdirectory <- paste0('SUBSTITUTE(', formula_workingdirectory, '"\'", ""),')
+  # formula_workingdirectory <- 'SUBSTITUTE(CELL("filename"), RIGHT(CELL("filename"), LEN(CELL("filename")) - FIND("Eingabeformular_3sekunden", CELL("filename")) + 1), ""),'
+  #
+  # formula_workingdirectory <- paste0('SUBSTITUTE(', formula_workingdirectory, '"\'", ""),')
+  #
+  formula_workingdirectory <- 'SUBSTITUTE(SUBSTITUTE(CELL("filename"), RIGHT(CELL("filename"), LEN(CELL("filename")) - FIND("Eingabeformular_3sekunden", CELL("filename")) + 1), ""),"\'", ""),'
 
   segements_worksheet_df <- wavs_df_2 |>
     dplyr::group_split(deployment_id) |>
     lapply(function(x){
       x <- x |>
-        dplyr::mutate(Dateipfad = paste0(
-          'HYPERLINK(CONCATENATE(',
-            formula_workingdirectory,
-          column_xl, seq(dplyr::n())+1,
-          '),',
-          '">abspielen<"'
-          ))
-#
-#       x <- x |>
-#         dplyr::mutate(Dateipfad = paste0(
-#           'CONCATENATE(',
-#           formula_workingdirectory,
-#           column_xl, seq(dplyr::n())+1,
-#           ")"
-#           #",\"'\")"
-#         ))
-#                          # paste0('HYPERLINK(CONCATENATE(einstellungen!B$2,',
-                         #                  column_xl, seq(dplyr::n())+1,'),',
-                        #                  #paste0(column_xl,"$",1) ,
-                        #                  '">abspielen<"',
-                        #                  #paste0("ADDRESS(1,", column_xl_num,")"),
-                        #                  ')'))
-      class(x$Dateipfad) <- c(class(x$Dateipfad), "formula")
+        # dplyr::mutate(Dateipfad_excel_win = paste0(
+        #   'HYPERLINK(SUBSTITUTE(CONCATENATE(SUBSTITUTE(CELL("filename"), RIGHT(CELL("filename"), LEN(CELL("filename")) - FIND("[", CELL("filename")) + 1), ""),',column_xl, seq(dplyr::n())+1,'),"\\", "/"),">abspielen<")'
+        #   )) |>
+        dplyr::mutate(Dateipfad = paste0('HYPERLINK(SUBSTITUTE(CONCATENATE(SUBSTITUTE(SUBSTITUTE(CELL("filename"), RIGHT(CELL("filename"), LEN(CELL("filename")) - FIND("Eingabeformular_3sekunden", CELL("filename")) + 1), ""),"\'", ""),',column_xl, seq(dplyr::n())+1,'),"\\[","/"),">abspielen<")'))
 
+      class(x$Dateipfad) <- c(class(x$Dateipfad), "formula")
+      #class(x$Dateipfad_excel_win) <- c(class(x$Dateipfad_excel_win), "formula")
       return(x)
     }) |>
     lapply(as.data.frame) |>
@@ -81,9 +67,14 @@ settings_dir -> dir_path
 
   openxlsx::addWorksheet(wb, "erlaubte_Werte")
 
+  # load list of common/expected species
+  common_names <- readr::read_csv(system.file("data/species_list.csv", package = "singR"))|>
+    dplyr::pull(common_name)
+
+  #system.file("species_list.csv", package = "singR")
   # define allowed values (append NA to facilitate cbind of dataframe)
   erlaubte_Werte <- list(
-    ManuellErgebnis = c("Biotisch - anderer Vogel", "Biotisch - unbekannter Vogel", "Biotisch - unbekannt","Biotisch - kein Vogel", "Abiotisch - Wind", "Abiotisch - Regen", sort(unique(wavs_df_2$BirdnetErgebnis))),
+    ManuellErgebnis = c("Biotisch - anderer Vogel", "Biotisch - unbekannter Vogel", "Biotisch - unbekannt","Biotisch - kein Vogel", "Abiotisch - Wind", "Abiotisch - Regen", sort(unique(common_names))),
     ManuellVerhalten = c("unbekannter Ruf", "Flugruf", "Gesang", "Warnruf", "Jungvogel", "Regenruf", "Kontaktruf"),
     ManuellSicher = c("sehr sicher", "sicher", "unsicher", "sehr unsicher"),
     Soundqualitaet = c("hervorragend", "gut", "durchschnittlich", "schlecht")
@@ -138,5 +129,5 @@ settings_dir -> dir_path
                            value = paste0("'erlaubte_Werte'!$D$2:$D$", length(erlaubte_Werte$Soundqualitaet)+1))
 
 
-  openxlsx::saveWorkbook(wb, paste0(dir_path, "/Eingabeformular_3sekunden_Segmente.xlsx"), overwrite = TRUE)
+  openxlsx::saveWorkbook(wb, paste0(dir_path, "/Eingabeformular_3sekunden_Segmente_",  basename(dir_path), ".xlsx"), overwrite = TRUE)
 }

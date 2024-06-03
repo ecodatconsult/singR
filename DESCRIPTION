@@ -17,6 +17,7 @@ Imports:
     janitor,
     magrittr,
     openxlsx,
+    readr,
     sf,
     soundecology,
     stringr

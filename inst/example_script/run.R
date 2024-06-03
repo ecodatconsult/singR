@@ -121,7 +121,7 @@ for(deployment_id_sel in deployment$deployment_id){
     previous_settings <- NA
   }
 
-
+  # create output folders
   settings_dir <- paste0(deployment_dir, "/"  , birdnet_analyze_settings$analyze_settings_id)
   dir.create(settings_dir)
   segments_dir <- paste0(settings_dir, "/segments/")
@@ -133,6 +133,7 @@ for(deployment_id_sel in deployment$deployment_id){
 
   # IF THESE ARE NEW SETTINGS ...
   if(!birdnet_analyze_settings$analyze_settings_id %in% previous_settings){
+    message(paste0(Sys.time(), ": running analysis"))
     # ... RUN BIRDNET
 
     birdnet_analyze_results <- run_birdnet(mode = "analyze",
@@ -145,8 +146,10 @@ for(deployment_id_sel in deployment$deployment_id){
                        table = "birdnet_analyze_results",
                        idfields = c("analyze_settings_id", "deployment_id"))
 
+    file.copy(paste0(temp_dir_deployment, "/Data"), settings_dir, recursive = TRUE)
 
-    # Skip embeddings for now
+
+    # Skip embeddings for now as it takes too much time
     # message(paste0(Sys.time(), ": running embeddings"))
     #
     # birdnet_args_embeddings <-  list(i = input_dir,
@@ -172,85 +175,53 @@ for(deployment_id_sel in deployment$deployment_id){
     #               birdnet_args = birdnet_args_embeddings)
     #
 
-
-    file.copy(paste0(temp_dir_deployment, "/Data"), settings_dir, recursive = TRUE)
-
-    message(paste0(Sys.time(), ": creating segments"))
-
-    files_with_best_detection <- birdnet_analyze_results |>
-      dplyr::group_by(common_name) |>
-      dplyr::filter(confidence == max(confidence)) |>
-      dplyr::filter(common_name != "nocall")
-
-    analysis_files <-  basename(files_with_best_detection$data_file) |>
-      tools::file_path_sans_ext() |>
-      paste0(".Bird") |>
-      sapply(function(temp_dir_deployment, pattern){
-        list.files(temp_dir_deployment, pattern = pattern, recursive = TRUE, full.names = TRUE)},
-        temp_dir_deployment = temp_dir_deployment) |>
-      lapply(function(x) x[1]) |>
-      unlist()
-
-    analysis_files2 <- list.files(temp_dir_deployment, pattern = "selection.table.txt", recursive = TRUE, full.names = TRUE)
-
-
-    analysis_files_2_segment <-
-      c(
-        analysis_files,
-        analysis_files2[!analysis_files2 %in% analysis_files] %>%
-          sample(size = ceiling(length(.)/10))
-      )
-
-    unique_analysis_files <- analysis_files_2_segment |> unique()
-    file.copy(unique_analysis_files, classifications_dir)
-
-        run_birdnet(mode = "segments",
-                birdnet_loc = "~/BirdNET-Analyzer/",
-                birdnet_args = list(audio = deployment_sel$deployment_path,
-                                    results = classifications_dir,
-                                    o = segments_dir,
-                                    min_conf = 0.2,
-                                    seg_length = 4.5
-                ))
-          create_birdnet_workbook(dir_path = settings_dir)
-
+  }else{
+    message(paste0("skipping ", deployment_id_sel, "as it has been processed with the same parameters already"))
   }
   }
 
 # generate segements with a 1 percent chance
-# make sure each species is represented at least once
+# in addition make sure each species is represented at least once
 
 # set false if existing segments should not be overwritten
 replace_segments <- TRUE
 
-deployment_id_sel <- deployment$deployment_id[1]
+# for testing the loop
+# deployment_id_sel <- deployment$deployment_id[1]
 for(deployment_id_sel in deployment$deployment_id){
 
+  # get deployment name of selected deployment
   deployment_name <- dplyr::tbl(con, "deployments") |>
     dplyr::filter(deployment_id == deployment_id_sel) |>
     dplyr::distinct(deployment_name) |>
     dplyr::collect() |>
     dplyr::pull(deployment_name)
 
+  # get deployment path of selected deployment
   deployment_path <- dplyr::tbl(con, "deployments") |>
     dplyr::filter(deployment_id == deployment_id_sel) |>
     dplyr::distinct(deployment_path) |>
     dplyr::collect() |>
     dplyr::pull(deployment_path)
 
-
+  # get setting ids run for this deployment (a deployment may be processed with various parameters)
   settings_ids <- dplyr::tbl(con, "birdnet_analyze_results") |>
     dplyr::filter(deployment_id == deployment_id_sel) |>
     dplyr::distinct(analyze_settings_id, deployment_id) |>
     dplyr::collect()
 
+  # get analysis ids
   analyze_settings_id_sel = settings_ids$analyze_settings_id[1]
 
+  # iterate through analysis ids
   for(analyze_settings_id_sel in settings_ids$analyze_settings_id){
+    # get results stored in database for certain settings and deployment
     birdnet_analyze_results <- dplyr::tbl(con, "birdnet_analyze_results") |>
-      dplyr::filter(deployment_id == deployment_id_sel & analyze_settings_id == analyze_settings_id_sel) |>
+      dplyr::filter(deployment_id == deployment_id_sel &
+                      analyze_settings_id == analyze_settings_id_sel) |>
       dplyr::collect()
 
+    # create output folder paths
     output_dir <- paste0(dirname(input_dir), "/", basename(input_dir), "_birdnet")
     deployment_dir <- paste0(output_dir, "/", paste0(deployment_name, "__", deployment_id_sel))
     settings_dir <- paste0(deployment_dir, "/"  , analyze_settings_id_sel)
@@ -258,8 +229,7 @@ for(deployment_id_sel in deployment$deployment_id){
     segments_dir <- paste0(settings_dir, "/segments/")
     classifications_dir <- paste0(settings_dir, "/selected_Data/")
 
-    message(paste0(Sys.time(), ": creating segments"))
-
+    #
     files_with_best_detection <- birdnet_analyze_results |>
       dplyr::group_by(common_name) |>
       dplyr::filter(confidence == max(confidence)) |>
@@ -287,6 +257,10 @@ for(deployment_id_sel in deployment$deployment_id){
     unique_analysis_files <- analysis_files_2_segment |> unique()
 
     if(length(list.files(classifications_dir, pattern = "selection.table.txt") == 0) | replace_segments){
+
+      message(paste0(Sys.time(), ": creating segments"))
+
+      # remove previously sampled segments
       file.remove(list.files(classifications_dir, full.names = TRUE))
       file.remove(list.files(segments_dir, recursive = TRUE, full.names = TRUE, include.dirs =FALSE))
       file.remove(list.files(segments_dir, recursive = TRUE, full.names = TRUE, include.dirs =TRUE))
