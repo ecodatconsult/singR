@@ -190,6 +190,13 @@ replace_segments <- TRUE
 # deployment_id_sel <- deployment$deployment_id[1]
 for(deployment_id_sel in deployment$deployment_id){
 
+
+  deployment_duration <- dplyr::tbl(con, "deployments") |>
+    dplyr::filter(deployment_id == deployment_id_sel) |>
+    dplyr::collect() |>
+    dplyr::mutate(duration = round((max(end_datetime) - min(start_datetime)) / 86400 / 7)) |>
+    dplyr::pull(duration)
+
   # get deployment name of selected deployment
   deployment_name <- dplyr::tbl(con, "deployments") |>
     dplyr::filter(deployment_id == deployment_id_sel) |>
@@ -221,6 +228,15 @@ for(deployment_id_sel in deployment$deployment_id){
                       analyze_settings_id == analyze_settings_id_sel) |>
       dplyr::collect()
 
+    sample_species <-
+    birdnet_analyze_results |>
+      dplyr::select(common_name) |>
+      table() |>
+      dplyr::as_tibble() |>
+      dplyr::filter(n > 2) |>
+      dplyr::filter(common_name != "nocall") |>
+      dplyr::mutate(rank = sample(seq(dplyr::n())))
+
     # create output folder paths
     output_dir <- paste0(dirname(input_dir), "/", basename(input_dir), "_birdnet")
     deployment_dir <- paste0(output_dir, "/", paste0(deployment_name, "__", deployment_id_sel))
@@ -229,32 +245,38 @@ for(deployment_id_sel in deployment$deployment_id){
     segments_dir <- paste0(settings_dir, "/segments/")
     classifications_dir <- paste0(settings_dir, "/selected_Data/")
 
-    #
-    files_with_best_detection <- birdnet_analyze_results |>
-      dplyr::group_by(common_name) |>
-      dplyr::filter(confidence == max(confidence)) |>
-      dplyr::filter(common_name != "nocall")
 
-    analysis_files <-  basename(files_with_best_detection$data_file) |>
+    analysis_files_df <- birdnet_analyze_results |>
+      dplyr::group_by(common_name) |>
+      dplyr::slice_sample(n = 20) |>
+      dplyr::bind_rows(
+        birdnet_analyze_results |>
+          dplyr::group_by(common_name) |>
+          dplyr::filter(confidence == max(confidence))
+      ) |>
+      dplyr::left_join(sample_species) |>
+      dplyr::filter(!is.na(rank)) |>
+      dplyr::arrange(rank) |>
+      dplyr::ungroup() |>
+      dplyr::mutate(end_time_s = ifelse(end_time_s %% 1 == 0, paste0(end_time_s, ".0"), end_time_s)) |>
+      dplyr::mutate(begin_time_s = ifelse(begin_time_s %% 1 == 0, paste0(begin_time_s, ".0"), begin_time_s)) |>
+      dplyr::mutate(segment_name = paste(tools::file_path_sans_ext(basename(data_file)), paste0(begin_time_s, "s"), paste0(end_time_s, "s.wav"), sep = "_" )) |>
+      dplyr::filter(!duplicated(segment_name)) |>
+      head(100 * deployment_duration)
+
+      unique_analysis_files <- analysis_files_df |>
+      dplyr::pull(data_file) |>
+      basename() |>
       tools::file_path_sans_ext() |>
       paste0(".Bird") |>
+      sort() |>
       sapply(function(data_dir, pattern){
         list.files(data_dir, pattern = pattern, recursive = TRUE, full.names = TRUE)},
         data_dir = data_dir) |>
-      lapply(function(x) x[1]) |>
-      unlist()
+      #lapply(function(x) x[1]) |>
+      unlist() |>
+      unique()
 
-    analysis_files2 <- list.files(data_dir, pattern = "selection.table.txt", recursive = TRUE, full.names = TRUE)
-
-
-    analysis_files_2_segment <-
-      c(
-        analysis_files,
-        analysis_files2[!analysis_files2 %in% analysis_files] %>%
-          sample(size = ceiling(length(.)/10))
-      )
-
-    unique_analysis_files <- analysis_files_2_segment |> unique()
 
     if(length(list.files(classifications_dir, pattern = "selection.table.txt") == 0) | replace_segments){
 
@@ -265,7 +287,7 @@ for(deployment_id_sel in deployment$deployment_id){
       file.remove(list.files(segments_dir, recursive = TRUE, full.names = TRUE, include.dirs =FALSE))
       file.remove(list.files(segments_dir, recursive = TRUE, full.names = TRUE, include.dirs =TRUE))
 
-      file.copy(unique_analysis_files, classifications_dir)
+      file.copy(unique_analysis_files |> sort(), classifications_dir)
 
       run_birdnet(mode = "segments",
                   birdnet_loc = "~/BirdNET-Analyzer/",
@@ -273,9 +295,23 @@ for(deployment_id_sel in deployment$deployment_id){
                                       results = classifications_dir,
                                       o = segments_dir,
                                       min_conf = 0.2,
-                                      seg_length = 3.5
+                                      seg_length = 3,
+                                      max_segments = 10000
                   ))
+
+
+      wav_files <- list.files(segments_dir, recursive = TRUE, full.names = TRUE, include.dirs =FALSE)
+
+      file.remove(wav_files[!stringr::str_detect(wav_files, pattern = paste0(analysis_files_df$segment_name, collapse = "|"))])
+
+      selected_species <- unique(analysis_files_df$common_name)
+      wav_files <- list.files(segments_dir, recursive = TRUE, full.names = TRUE, include.dirs =FALSE)
+      file.remove(wav_files[!stringr::str_detect(wav_files, pattern = paste0(selected_species, collapse = "|"))])
+      wav_dirs <- list.files(segments_dir, recursive = TRUE, full.names = TRUE, include.dirs =TRUE)
+      file.remove(wav_dirs[!stringr::str_detect(wav_dirs, pattern = paste0(selected_species, collapse = "|"))])
+
       create_birdnet_workbook(dir_path = settings_dir)
+
     }
   }
 }

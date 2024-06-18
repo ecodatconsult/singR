@@ -29,6 +29,7 @@ create_birdnet_workbook <- function(dir_path){
     dplyr::mutate(ManuellErgebnis = NA,
                   ManuellVerhalten = NA,
                   ManuellSicher = NA,
+                  WeitereStimmen = NA,
                   Soundqualitaet = NA,
                   BearbeitetDurch = NA,
                   Kommentar = NA) |>
@@ -77,6 +78,7 @@ create_birdnet_workbook <- function(dir_path){
     ManuellErgebnis = c("Biotisch - anderer Vogel", "Biotisch - unbekannter Vogel", "Biotisch - unbekannt","Biotisch - kein Vogel", "Abiotisch - Wind", "Abiotisch - Regen", sort(unique(common_names))),
     ManuellVerhalten = c("unbekannter Ruf", "Flugruf", "Gesang", "Warnruf", "Jungvogel", "Regenruf", "Kontaktruf"),
     ManuellSicher = c("sehr sicher", "sicher", "unsicher", "sehr unsicher"),
+    WeitereStimmen = c("nein", "ja, nur gleiche Art", "ja, auch andere Art"),
     Soundqualitaet = c("hervorragend", "gut", "durchschnittlich", "schlecht")
   )
 
@@ -123,10 +125,18 @@ create_birdnet_workbook <- function(dir_path){
 
   openxlsx::dataValidation(wb = wb,
                            sheet = lname,
+                           cols = which(names(segements_worksheet_df[[lname]]) == "WeitereStimmen"),
+                           rows = seq(nrow(segements_worksheet_df[[lname]])+1),
+                           type = 'list',
+                           value = paste0("'erlaubte_Werte'!$D$2:$D$", length(erlaubte_Werte$WeitereStimmen)+1))
+
+
+  openxlsx::dataValidation(wb = wb,
+                           sheet = lname,
                            cols = which(names(segements_worksheet_df[[lname]]) == "Soundqualitaet"),
                            rows = seq(nrow(segements_worksheet_df[[lname]])+1),
                            type = 'list',
-                           value = paste0("'erlaubte_Werte'!$D$2:$D$", length(erlaubte_Werte$Soundqualitaet)+1))
+                           value = paste0("'erlaubte_Werte'!$E$2:$E$", length(erlaubte_Werte$Soundqualitaet)+1))
 
 
   openxlsx::saveWorkbook(wb, paste0(dir_path, "/Eingabeformular_3sekunden_Segmente_",  basename(dir_path), ".xlsx"), overwrite = TRUE)
